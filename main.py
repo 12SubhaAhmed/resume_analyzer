@@ -6,7 +6,7 @@ import google.generativeai as genai
 
 # Load environment variables
 load_dotenv()
-gemini_api_key = os.getenv("GOOGLE_API_KEY")
+gemini_api_key = st.secrets.get("GOOGLE_API_KEY") or os.getenv("GOOGLE_API_KEY")
 if not gemini_api_key:
     raise ValueError("GOOGLE_API_KEY is not set. Please ensure it is defined in your .env file.")
 
