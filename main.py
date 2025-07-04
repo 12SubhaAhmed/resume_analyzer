@@ -140,7 +140,6 @@
 # main.py
 
 import streamlit as st
-import PyPDF2
 from dotenv import load_dotenv
 import os
 import google.generativeai as genai
@@ -149,89 +148,86 @@ import google.generativeai as genai
 load_dotenv()
 gemini_api_key = st.secrets.get("GOOGLE_API_KEY") or os.getenv("GOOGLE_API_KEY")
 if not gemini_api_key:
-    raise ValueError("GOOGLE_API_KEY is not set in Streamlit secrets or .env")
+    raise ValueError("GOOGLE_API_KEY is not set in secrets or .env file")
 
 # Configure Gemini
 genai.configure(api_key=gemini_api_key)
 model = genai.GenerativeModel("gemini-2.0-flash")
 
 st.set_page_config(page_title="AI Resume Assistant", layout="centered")
-st.title("💼 AI Resume Assistant")
+st.markdown("<h1 style='text-align: center;'>💼 AI Resume Assistant</h1>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; font-size: 18px;'>Analyze and generate resumes with AI 🤖</p>", unsafe_allow_html=True)
+st.markdown("---")
 
 tab1, tab2 = st.tabs(["📄 Analyze Resume", "📝 Generate Resume"])
 
-# --- Analyze Resume ---
+# --- Analyze Resume Tab ---
 with tab1:
-    st.subheader("📄 Analyze your Resume")
-    option = st.radio("Choose input method:", ["Paste Text", "Upload PDF"])
-    resume_text = ""
+    st.subheader("📄 Paste Your Resume Text")
+    resume_text = st.text_area("Paste your resume here:", height=300)
 
-    if option == "Paste Text":
-        resume_text = st.text_area("Paste your resume here:", height=300)
-
-    elif option == "Upload PDF":
-        uploaded_file = st.file_uploader("Upload your resume", type="pdf")
-        if uploaded_file is not None:
-            try:
-                reader = PyPDF2.PdfReader(uploaded_file)
-                for page in reader.pages:
-                    resume_text += page.extract_text() or ""
-                st.success("✅ Text extracted!")
-            except Exception as e:
-                st.error(f"Failed to read PDF: {e}")
-
+    # Analyze Button
     if st.button("Analyze Resume"):
         if not resume_text.strip():
-            st.warning("Please enter or upload resume first!")
+            st.warning("Please paste your resume first!")
         else:
-            with st.spinner("Analyzing..."):
-                prompt = f"""You're a professional resume reviewer.
-Please analyze the resume and provide:
+            with st.spinner("Analyzing your resume..."):
+                prompt = f"""
+You're a professional resume reviewer.
+
+Please analyze the resume below and provide:
 - Strengths
 - Weaknesses
-- Suggestions
-- 1-line summary
+- Suggestions for improvement
+- 1-line summary about this candidate
 
 Resume:
-{resume_text}"""
+{resume_text}
+"""
                 try:
                     response = model.generate_content(prompt)
-                    st.success("✅ Feedback:")
-                    st.markdown(response.text.replace("\n", "\n\n"))
+                    st.success("✅ Resume Feedback:")
+                    st.markdown(response.text.replace("\n", "\n\n"))  # Better spacing
                 except Exception as e:
-                    st.error(f"Gemini Error: {e}")
+                    st.error(f"❌ Error: {str(e)}")
 
-# --- Generate Resume ---
+# --- Generate Resume Tab ---
 with tab2:
-    st.subheader("📝 Generate Resume")
-    job_title = st.text_input("Job Title")
-    education = st.text_area("Education")
-    skills = st.text_area("Skills")
-    experience = st.text_area("Experience or Certifications")
+    st.subheader("📝 Generate a Resume with AI ✨")
+
+    job_title = st.text_input("What job are you applying for?")
+    education = st.text_area("Your education background")
+    skills = st.text_area("Your main skills")
+    experience = st.text_area("Experience or certifications")
 
     if st.button("Generate Resume"):
         if not job_title.strip():
-            st.warning("Job title is required.")
+            st.warning("Please enter a job title.")
         else:
-            with st.spinner("Generating..."):
-                gen_prompt = f"""You're an expert resume writer.
+            with st.spinner("Generating Resume..."):
+                gen_prompt = f"""
+You're an expert resume writer.
 
-Use markdown formatting and generate a resume with:
+Create a professional resume based on the details below using **Markdown formatting**. Use:
+- `###` for section headings
+- bullet points for skills and experience
+- bold for section titles
+
 **Job Title**: {job_title}
 **Education**: {education}
 **Skills**: {skills}
-**Experience**: {experience}
+**Experience/Certifications**: {experience}
 
-Use:
-- `###` for headings
-- bullet points for skills and experience
-- Bold for section titles
+Please format the resume clearly with sections like:
+- Objective
+- Skills
+- Experience
+- Education
+- Certifications (if any)
 """
                 try:
                     response = model.generate_content(gen_prompt)
-                    st.success("✅ Generated Resume:")
-                    st.text_area("Your Resume", value=response.text, height=400)
+                    st.success("✅ Resume Generated:")
+                    st.text_area("Your AI-Generated Resume:", value=response.text, height=400)
                 except Exception as e:
-                    st.error(f"Gemini Error: {e}")
-
-
+                    st.error(f"❌ Error: {str(e)}")
